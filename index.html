@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WildShield AI | Predict. Protect. Respond.</title>
+    <meta
+      name="description"
+      content="WildShield AI is an AI-based predictive wildlife intrusion detection and multi-level alert system for forest protection teams."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar glass-card" id="sidebar">
+        <div class="sidebar-top">
+          <button class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">
+            <span></span>
+          </button>
+          <div class="brand compact-brand">
+            <div class="brand-mark" aria-label="WildShield AI logo">
+              <svg viewBox="0 0 64 64" role="img" aria-hidden="true">
+                <path d="M18 14c-4 6-7 10-7 15 0 6 5 11 11 11 4 0 8-2 10-5-2 8-8 14-15 14-8 0-14-6-14-14 0-8 6-13 15-21z" fill="url(#g1)"/>
+                <path d="M46 14c4 6 7 10 7 15 0 6-5 11-11 11-4 0-8-2-10-5 2 8 8 14 15 14 8 0 14-6 14-14 0-8-6-13-15-21z" fill="url(#g2)"/>
+                <path d="M32 10c-5 0-9 4-9 9 0 4 2 7 6 9 2-2 4-4 6-6 2 2 4 4 6 6 4-2 6-5 6-9 0-5-4-9-9-9z" fill="#d8f5dc"/>
+                <defs>
+                  <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#46d07e" />
+                    <stop offset="100%" stop-color="#1f7f4d" />
+                  </linearGradient>
+                  <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#3b8dff" />
+                    <stop offset="100%" stop-color="#0f2f4d" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <h1>WildShield AI</h1>
+              <p>Predict. Protect. Respond.</p>
+            </div>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Primary">
+          <a href="index.html" class="nav-item active"><span class="nav-icon">◉</span><span class="nav-label">Dashboard</span></a>
+          <a href="map-view.html" class="nav-item"><span class="nav-icon">◌</span><span class="nav-label">Map View</span></a>
+          <a href="alerts.html" class="nav-item"><span class="nav-icon">⚑</span><span class="nav-label">Alerts</span></a>
+          <a href="siren-control.html" class="nav-item"><span class="nav-icon">⏺</span><span class="nav-label">Siren Control</span></a>
+          <a href="analytics.html" class="nav-item"><span class="nav-icon">◫</span><span class="nav-label">Analytics</span></a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="status-card">
+            <p>Command health</p>
+            <strong>All systems nominal</strong>
+            <span>Secure uplink • 99.98%</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+      <div class="main-panel">
+        <header class="topbar glass-card">
+          <div class="topbar-left">
+            <button class="icon-btn mobile-toggle" id="mobileToggle" aria-label="Open navigation">
+              <span></span>
+            </button>
+            <div class="topbar-title">
+              <h2>WildShield AI command center</h2>
+              <p>Predict. Protect. Respond.</p>
+            </div>
+          </div>
+
+          <div class="topbar-right">
+            <div class="date-pill" id="currentDateTime">--</div>
+            <div class="profile-menu">
+              <button class="profile-trigger" id="profileTrigger" aria-expanded="false">
+                <div class="avatar">FO</div>
+                <div class="profile-copy">
+                  <strong>Forest Officer</strong>
+                  <span>Lead operator</span>
+                </div>
+                <span class="chevron">▾</span>
+              </button>
+              <div class="profile-dropdown" id="profileDropdown">
+                <a href="profile.html">Profile</a>
+                <a href="security.html">Security</a>
+                <a href="#">Sign out</a>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main class="dashboard-grid">
+          <section class="summary-grid" data-role="village-grid">
+            <article class="glass-card stat-card highlight">
+              <p>Loading villages…</p>
+              <h3>--</h3>
+              <span class="trend up">--</span>
+            </article>
+          </section>
+
+          <section class="main-dashboard-grid">
+            <article class="glass-card panel-card live-feed-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Surveillance</p>
+                  <h3>LIVE CAMERA FEED</h3>
+                </div>
+                <span class="status-pill online">● LIVE</span>
+              </div>
+              <div class="feed-visual">
+                <div class="feed-overlay">
+                  <span class="feed-badge">Camera 04</span>
+                  <h4>North Ridge Trail</h4>
+                  <p>Detected object: Elephant calf</p>
+                  <p>Confidence: 96%</p>
+                  <p>Detection time: 06:42</p>
+                  <p>Forest zone: Zone B</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="glass-card panel-card map-card-panel">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Tracking</p>
+                  <h3>LIVE MAP & MOVEMENT TRACKING</h3>
+                </div>
+                <span class="status-pill warning">Monitoring</span>
+              </div>
+              <div class="map-panel">
+                <div class="map-points">
+                  <div class="map-marker village">Village 1</div>
+                  <div class="map-marker village">Village 2</div>
+                  <div class="map-marker danger">Danger Zone</div>
+                  <div class="map-marker safe">Safe Zone</div>
+                  <div class="map-marker animal">Animal Path</div>
+                </div>
+                <div class="map-details">
+                  <p><strong>Forest area:</strong> Evergreen Reserve</p>
+                  <p><strong>Forest boundary:</strong> Riverline Ridge</p>
+                  <p><strong>Camera location:</strong> North Post 4</p>
+                  <p><strong>Animal location:</strong> 1.4 km from boundary</p>
+                  <p><strong>Movement direction:</strong> South-East</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="glass-card panel-card alert-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Response</p>
+                  <h3>ACTIVE ALERT</h3>
+                </div>
+              </div>
+              <div class="alert-body">
+                <div class="alert-icon">🦌</div>
+                <h4>Elephant Movement</h4>
+                <p><strong>Direction:</strong> South-East</p>
+                <p><strong>Target village:</strong> Village 1</p>
+                <p><strong>Risk level:</strong> High</p>
+                <p><strong>Time:</strong> 06:42</p>
+                <p><strong>Date:</strong> 01 Aug 2026</p>
+                <p><strong>Siren status:</strong> Ready</p>
+              </div>
+              <button class="btn btn-primary wide-btn">SIREN ON - VILLAGE 1</button>
+            </article>
+          </section>
+
+          <section class="lower-grid">
+            <article class="glass-card panel-card gauge-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Risk assessment</p>
+                  <h3>Risk Level Gauge</h3>
+                </div>
+              </div>
+              <div class="gauge-scale">
+                <span>Low</span>
+                <span>Medium</span>
+                <span>High</span>
+                <span>Critical</span>
+              </div>
+              <div class="gauge-bar">
+                <span></span>
+              </div>
+            </article>
+
+            <article class="glass-card panel-card overview-panel">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Daily summary</p>
+                  <h3>Today's Overview</h3>
+                </div>
+              </div>
+              <div class="overview-list">
+                <div><span>Forest Boundary Crossings</span><strong>03</strong></div>
+                <div><span>Animals Detected</span><strong>07</strong></div>
+                <div><span>Humans Detected</span><strong>02</strong></div>
+                <div><span>Alerts Triggered</span><strong>01</strong></div>
+              </div>
+            </article>
+
+            <article class="glass-card panel-card table-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Activity log</p>
+                  <h3>Recent Detections</h3>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Detected Object</th>
+                      <th>Type</th>
+                      <th>Location</th>
+                      <th>Direction</th>
+                      <th>Risk Level</th>
+                      <th>Action Taken</th>
+                    </tr>
+                  </thead>
+                  <tbody data-role="detections-table">
+                    <tr>
+                      <td colspan="7">Loading detection feed…</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <section class="intrusion-section">
+            <article class="glass-card panel-card intrusion-main-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Security event</p>
+                  <h3>Human Intrusion Monitoring</h3>
+                </div>
+                <span class="intrusion-badge">Threat detected</span>
+              </div>
+
+              <div class="intrusion-hero">
+                <div class="intrusion-image" aria-label="Detection image placeholder">
+                  <div class="intrusion-image-badge">Detection image</div>
+                  <svg viewBox="0 0 320 220" role="img" aria-hidden="true">
+                    <rect width="320" height="220" rx="24" fill="#081118" />
+                    <rect x="24" y="28" width="272" height="164" rx="18" fill="#0f202c" stroke="rgba(255,255,255,0.12)" />
+                    <circle cx="116" cy="116" r="34" fill="#ff5a5f" opacity="0.92" />
+                    <rect x="112" y="98" width="52" height="70" rx="16" fill="#f7efe2" />
+                    <rect x="114" y="88" width="28" height="24" rx="12" fill="#f7efe2" />
+                    <path d="M90 160h112" stroke="#4de28a" stroke-width="6" stroke-linecap="round" />
+                    <path d="M86 112c10-18 24-30 44-31" stroke="#4aa7ff" stroke-width="4" stroke-linecap="round" />
+                  </svg>
+                </div>
+
+                <div class="intrusion-details">
+                  <div class="warning-banner">
+                    Unauthorized human detected inside restricted forest area.
+                  </div>
+
+                  <div class="detail-grid">
+                    <div>
+                      <span>Human detected</span>
+                      <strong>Person entering restricted zone</strong>
+                    </div>
+                    <div>
+                      <span>Location</span>
+                      <strong>North Ridge Access Point</strong>
+                    </div>
+                    <div>
+                      <span>Zone</span>
+                      <strong>Restricted Zone C</strong>
+                    </div>
+                    <div>
+                      <span>Date and time</span>
+                      <strong>01 Aug 2026 • 06:42</strong>
+                    </div>
+                    <div>
+                      <span>Confidence score</span>
+                      <strong>96%</strong>
+                    </div>
+                    <div>
+                      <span>Movement direction</span>
+                      <strong>Northwest</strong>
+                    </div>
+                    <div>
+                      <span>Restricted area status</span>
+                      <strong>Active • No entry permitted</strong>
+                    </div>
+                    <div>
+                      <span>Alert priority</span>
+                      <strong>Immediate escalation</strong>
+                    </div>
+                  </div>
+
+                  <div class="routing-block">
+                    <p>Generated alert for</p>
+                    <div class="recipient-pills">
+                      <span>Forest Officers</span>
+                      <span>Police</span>
+                      <span>Rescue/Security Team</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="glass-card panel-card intrusion-history-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">History</p>
+                  <h3>Human Intrusion History</h3>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Location</th>
+                      <th>Zone</th>
+                      <th>Status</th>
+                      <th>Confidence</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>06:42</td>
+                      <td>North Ridge</td>
+                      <td>Zone C</td>
+                      <td><span class="risk critical">Critical</span></td>
+                      <td>96%</td>
+                      <td>Escalated to officers</td>
+                    </tr>
+                    <tr>
+                      <td>04:12</td>
+                      <td>River Gate</td>
+                      <td>Zone B</td>
+                      <td><span class="risk high">High</span></td>
+                      <td>88%</td>
+                      <td>Patrol dispatched</td>
+                    </tr>
+                    <tr>
+                      <td>01:25</td>
+                      <td>East Trail</td>
+                      <td>Zone A</td>
+                      <td><span class="risk medium">Medium</span></td>
+                      <td>79%</td>
+                      <td>Monitored and logged</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="api-service.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
