@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WildShield AI | Predict. Protect. Respond.</title>
+    <meta
+      name="description"
+      content="WildShield AI is an AI-based predictive wildlife intrusion detection and multi-level alert system for forest protection teams."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar glass-card" id="sidebar">
+        <div class="sidebar-top">
+          <button class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">
+            <span></span>
+          </button>
+          <div class="brand compact-brand">
+            <div class="brand-mark" aria-label="WildShield AI logo">
+              <svg viewBox="0 0 64 64" role="img" aria-hidden="true">
+                <path d="M18 14c-4 6-7 10-7 15 0 6 5 11 11 11 4 0 8-2 10-5-2 8-8 14-15 14-8 0-14-6-14-14 0-8 6-13 15-21z" fill="url(#g1)"/>
+                <path d="M46 14c4 6 7 10 7 15 0 6-5 11-11 11-4 0-8-2-10-5 2 8 8 14 15 14 8 0 14-6 14-14 0-8-6-13-15-21z" fill="url(#g2)"/>
+                <path d="M32 10c-5 0-9 4-9 9 0 4 2 7 6 9 2-2 4-4 6-6 2 2 4 4 6 6 4-2 6-5 6-9 0-5-4-9-9-9z" fill="#d8f5dc"/>
+                <defs>
+                  <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#46d07e" />
+                    <stop offset="100%" stop-color="#1f7f4d" />
+                  </linearGradient>
+                  <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#3b8dff" />
+                    <stop offset="100%" stop-color="#0f2f4d" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <h1>WildShield AI</h1>
+              <p>Predict. Protect. Respond.</p>
+            </div>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Primary">
+          <a href="index.html" class="nav-item active"><span class="nav-icon">◉</span><span class="nav-label">Dashboard</span></a>
+          <a href="map-view.html" class="nav-item"><span class="nav-icon">◌</span><span class="nav-label">Map View</span></a>
+          <a href="alerts.html" class="nav-item"><span class="nav-icon">⚑</span><span class="nav-label">Alerts</span></a>
+          <a href="siren-control.html" class="nav-item"><span class="nav-icon">⏺</span><span class="nav-label">Siren Control</span></a>
+          <a href="analytics.html" class="nav-item"><span class="nav-icon">◫</span><span class="nav-label">Analytics</span></a>
+          <a href="notifications.html" class="nav-item"><span class="nav-icon">🔔</span><span class="nav-label">Notifications</span></a>
+          <a href="profile.html" class="nav-item"><span class="nav-icon">👤</span><span class="nav-label">Profile</span></a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="status-card">
+            <p>Command health</p>
+            <strong>All systems nominal</strong>
+            <span>Secure uplink • 99.98%</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+      <div class="main-panel">
+        <header class="topbar glass-card">
+          <div class="topbar-left">
+            <button class="icon-btn mobile-toggle" id="mobileToggle" aria-label="Open navigation">
+              <span></span>
+            </button>
+            <div class="topbar-title">
+              <h2>WildShield AI command center</h2>
+              <p>Predict. Protect. Respond.</p>
+            </div>
+          </div>
+
+          <div class="topbar-right">
+            <div class="date-pill" id="currentDateTime">--</div>
+            <div class="profile-menu">
+              <button class="profile-trigger" id="profileTrigger" aria-expanded="false">
+                <div class="avatar">FO</div>
+                <div class="profile-copy">
+                  <strong>Forest Officer</strong>
+                  <span>Lead operator</span>
+                </div>
+                <span class="chevron">▾</span>
+              </button>
+              <div class="profile-dropdown" id="profileDropdown">
+                <a href="profile.html">Profile</a>
+                <a href="security.html">Security</a>
+                <a href="#" id="authActionLink">Sign out</a>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main class="dashboard-grid">
+          <section class="summary-grid" data-role="village-grid">
+            <article class="glass-card stat-card highlight">
+              <p>Loading villages…</p>
+              <h3>--</h3>
+              <span class="trend up">--</span>
+            </article>
+          </section>
+
+          <section class="main-dashboard-grid">
+            <article class="glass-card panel-card live-feed-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Surveillance</p>
+                  <h3>LIVE CAMERA FEED</h3>
+                </div>
+                <span class="status-pill online">● LIVE</span>
+              </div>
+              <div class="feed-visual">
+                <div class="feed-overlay" data-role="live-feed">
+                  <span class="feed-badge">Loading…</span>
+                  <h4>Waiting for detections…</h4>
+                  <p>Detected object: --</p>
+                  <p>Confidence: --</p>
+                  <p>Detection time: --</p>
+                  <p>Forest zone: --</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="glass-card panel-card map-card-panel">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Tracking</p>
+                  <h3>LIVE MAP & MOVEMENT TRACKING</h3>
+                </div>
+                <span class="status-pill warning">Monitoring</span>
+              </div>
+              <div class="map-panel">
+                <div class="map-points" data-role="index-map-markers">
+                  <div class="map-marker village">Village 1</div>
+                  <div class="map-marker village">Village 2</div>
+                  <div class="map-marker danger">Danger Zone</div>
+                  <div class="map-marker safe">Safe Zone</div>
+                  <div class="map-marker animal">Animal Path</div>
+                </div>
+                <div class="map-details" data-role="index-map-details">
+                  <p>Loading map data…</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="glass-card panel-card alert-card clickable" data-role="index-active-alert">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Response</p>
+                  <h3>ACTIVE ALERT</h3>
+                </div>
+              </div>
+              <div class="alert-body">
+                <p>Loading latest alert…</p>
+              </div>
+              <button class="btn btn-primary wide-btn" data-role="index-siren-btn" disabled>SIREN CONTROL</button>
+            </article>
+          </section>
+
+          <section class="lower-grid">
+            <article class="glass-card panel-card gauge-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Risk assessment</p>
+                  <h3>Risk Level Gauge</h3>
+                </div>
+              </div>
+              <div class="gauge-scale">
+                <span>Low</span>
+                <span>Medium</span>
+                <span>High</span>
+                <span>Critical</span>
+              </div>
+              <div class="gauge-bar">
+                <span data-role="index-gauge-fill"></span>
+              </div>
+            </article>
+
+            <article class="glass-card panel-card overview-panel">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Daily summary</p>
+                  <h3>Today's Overview</h3>
+                </div>
+              </div>
+              <div class="overview-list" data-role="index-overview">
+                <div><span>Forest Boundary Crossings</span><strong>--</strong></div>
+                <div><span>Animals Detected</span><strong>--</strong></div>
+                <div><span>Humans Detected</span><strong>--</strong></div>
+                <div><span>Alerts Triggered</span><strong>--</strong></div>
+              </div>
+            </article>
+
+            <article class="glass-card panel-card table-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Activity log</p>
+                  <h3>Recent Detections</h3>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Detected Object</th>
+                      <th>Type</th>
+                      <th>Location</th>
+                      <th>Direction</th>
+                      <th>Risk Level</th>
+                      <th>Action Taken</th>
+                    </tr>
+                  </thead>
+                  <tbody data-role="detections-table">
+                    <tr>
+                      <td colspan="7">Loading detection feed…</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+
+          <section class="intrusion-section">
+            <article class="glass-card panel-card intrusion-main-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">Security event</p>
+                  <h3>Human Intrusion Monitoring</h3>
+                </div>
+                <span class="intrusion-badge" data-role="index-intrusion-badge">Checking…</span>
+              </div>
+
+              <div class="intrusion-hero">
+                <div class="intrusion-image" aria-label="Detection image placeholder">
+                  <div class="intrusion-image-badge">Detection image</div>
+                  <svg viewBox="0 0 320 220" role="img" aria-hidden="true">
+                    <rect width="320" height="220" rx="24" fill="#081118" />
+                    <rect x="24" y="28" width="272" height="164" rx="18" fill="#0f202c" stroke="rgba(255,255,255,0.12)" />
+                    <circle cx="116" cy="116" r="34" fill="#ff5a5f" opacity="0.92" />
+                    <rect x="112" y="98" width="52" height="70" rx="16" fill="#f7efe2" />
+                    <rect x="114" y="88" width="28" height="24" rx="12" fill="#f7efe2" />
+                    <path d="M90 160h112" stroke="#4de28a" stroke-width="6" stroke-linecap="round" />
+                    <path d="M86 112c10-18 24-30 44-31" stroke="#4aa7ff" stroke-width="4" stroke-linecap="round" />
+                  </svg>
+                </div>
+
+                <div class="intrusion-details" data-role="index-intrusion-details">
+                  <p>Loading human intrusion data…</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="glass-card panel-card intrusion-history-card">
+              <div class="card-heading">
+                <div>
+                  <p class="eyebrow">History</p>
+                  <h3>Human Intrusion History</h3>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Location</th>
+                      <th>Zone</th>
+                      <th>Status</th>
+                      <th>Confidence</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody data-role="index-intrusion-history">
+                    <tr>
+                      <td colspan="6">Loading…</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="api-service.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

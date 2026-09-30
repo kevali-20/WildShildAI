@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WildShield AI | Map View</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar glass-card" id="sidebar">
+        <div class="sidebar-top">
+          <button class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">
+            <span></span>
+          </button>
+          <div class="brand compact-brand">
+            <div class="brand-mark" aria-label="WildShield AI logo">
+              <svg viewBox="0 0 64 64" role="img" aria-hidden="true">
+                <path d="M18 14c-4 6-7 10-7 15 0 6 5 11 11 11 4 0 8-2 10-5-2 8-8 14-15 14-8 0-14-6-14-14 0-8 6-13 15-21z" fill="url(#g1)"/>
+                <path d="M46 14c4 6 7 10 7 15 0 6-5 11-11 11-4 0-8-2-10-5 2 8 8 14 15 14 8 0 14-6 14-14 0-8-6-13-15-21z" fill="url(#g2)"/>
+                <path d="M32 10c-5 0-9 4-9 9 0 4 2 7 6 9 2-2 4-4 6-6 2 2 4 4 6 6 4-2 6-5 6-9 0-5-4-9-9-9z" fill="#d8f5dc"/>
+                <defs>
+                  <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#46d07e" />
+                    <stop offset="100%" stop-color="#1f7f4d" />
+                  </linearGradient>
+                  <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#3b8dff" />
+                    <stop offset="100%" stop-color="#0f2f4d" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <h1>WildShield AI</h1>
+              <p>Predict. Protect. Respond.</p>
+            </div>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Primary">
+          <a href="index.html" class="nav-item"><span class="nav-icon">◉</span><span class="nav-label">Dashboard</span></a>
+          <a href="map-view.html" class="nav-item active"><span class="nav-icon">◌</span><span class="nav-label">Map View</span></a>
+          <a href="alerts.html" class="nav-item"><span class="nav-icon">⚑</span><span class="nav-label">Alerts</span></a>
+          <a href="siren-control.html" class="nav-item"><span class="nav-icon">⏺</span><span class="nav-label">Siren Control</span></a>
+          <a href="analytics.html" class="nav-item"><span class="nav-icon">◫</span><span class="nav-label">Analytics</span></a>
+          <a href="notifications.html" class="nav-item"><span class="nav-icon">🔔</span><span class="nav-label">Notifications</span></a>
+          <a href="profile.html" class="nav-item"><span class="nav-icon">👤</span><span class="nav-label">Profile</span></a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="status-card">
+            <p>Command health</p>
+            <strong>All systems nominal</strong>
+            <span>Secure uplink • 99.98%</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+      <div class="main-panel">
+        <header class="topbar glass-card">
+          <div class="topbar-left">
+            <button class="icon-btn mobile-toggle" id="mobileToggle" aria-label="Open navigation">
+              <span></span>
+            </button>
+            <div class="topbar-title">
+              <h2>Map View</h2>
+              <p>Live wildlife intrusion monitoring</p>
+            </div>
+          </div>
+          <div class="topbar-right">
+            <div class="date-pill" id="currentDateTime">--</div>
+            <div class="profile-menu">
+              <button class="profile-trigger" id="profileTrigger" aria-expanded="false">
+                <div class="avatar">FO</div>
+                <div class="profile-copy">
+                  <strong>Forest Officer</strong>
+                  <span>Lead operator</span>
+                </div>
+                <span class="chevron">▾</span>
+              </button>
+              <div class="profile-dropdown" id="profileDropdown">
+                <a href="profile.html">Profile</a>
+                <a href="security.html">Security</a>
+                <a href="#" id="authActionLink">Sign out</a>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main class="dashboard-grid map-page-grid">
+          <section class="glass-card panel-card map-hero-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Interactive perimeter map</p>
+                <h3>Wildlife intrusion path</h3>
+              </div>
+              <span class="status-pill danger">CRITICAL</span>
+            </div>
+            <div class="map-scene">
+              <div class="forest-zone"></div>
+              <div class="boundary-line"></div>
+              <div class="restricted-zone"></div>
+              <div class="camera-marker clickable" data-role="map-camera" title="Camera details">📹</div>
+              <div class="sensor-marker clickable" data-role="map-sensor" title="Sensor details">◎</div>
+              <div class="village village-one safe clickable" data-role="map-village-1">Village 1<br/><small>SAFE</small></div>
+              <div class="village village-two at-risk clickable" data-role="map-village-2">Village 2<br/><small>AT RISK</small></div>
+              <div class="siren siren-one clickable" data-role="map-siren-1">Siren 1<br/><small>OFF</small></div>
+              <div class="siren siren-two clickable" data-role="map-siren-2">Siren 2<br/><small>ON</small></div>
+              <div class="animal-marker clickable" data-role="map-animal" title="Threat details">🦁</div>
+              <div class="movement-path"></div>
+              <div class="movement-arrow">➜</div>
+              <div class="danger-zone clickable" data-role="map-danger-zone">Danger Zone</div>
+              <div class="safe-zone clickable" data-role="map-safe-zone">Safe Zone</div>
+            </div>
+            <div class="legend">
+              <span><i class="legend-dot green"></i>Green = Forest/Safe</span>
+              <span><i class="legend-dot red"></i>Red = Danger Zone</span>
+              <span><i class="legend-dot orange"></i>Orange = Animal Movement</span>
+              <span><i class="legend-dot blue"></i>Blue = Camera</span>
+              <span><i class="legend-dot yellow"></i>Yellow = Boundary</span>
+            </div>
+          </section>
+
+          <aside class="glass-card panel-card info-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Incident details</p>
+                <h3>Threat Assessment</h3>
+              </div>
+            </div>
+            <div class="info-list" data-role="map-threat"></div>
+            <button class="btn btn-primary wide-btn" data-role="map-full-response-btn">ACTIVATE FULL RESPONSE</button>
+          </aside>
+        </main>
+      </div>
+    </div>
+
+    <script src="api-service.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

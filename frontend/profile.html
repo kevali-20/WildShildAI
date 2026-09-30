@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WildShield AI | Profile</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar glass-card" id="sidebar">
+        <div class="sidebar-top">
+          <button class="icon-btn sidebar-toggle" id="sidebarToggle" aria-label="Toggle navigation">
+            <span></span>
+          </button>
+          <div class="brand compact-brand">
+            <div class="brand-mark" aria-label="WildShield AI logo">
+              <svg viewBox="0 0 64 64" role="img" aria-hidden="true">
+                <path d="M18 14c-4 6-7 10-7 15 0 6 5 11 11 11 4 0 8-2 10-5-2 8-8 14-15 14-8 0-14-6-14-14 0-8 6-13 15-21z" fill="url(#g1)"/>
+                <path d="M46 14c4 6 7 10 7 15 0 6-5 11-11 11-4 0-8-2-10-5 2 8 8 14 15 14 8 0 14-6 14-14 0-8-6-13-15-21z" fill="url(#g2)"/>
+                <path d="M32 10c-5 0-9 4-9 9 0 4 2 7 6 9 2-2 4-4 6-6 2 2 4 4 6 6 4-2 6-5 6-9 0-5-4-9-9-9z" fill="#d8f5dc"/>
+                <defs>
+                  <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#46d07e" />
+                    <stop offset="100%" stop-color="#1f7f4d" />
+                  </linearGradient>
+                  <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#3b8dff" />
+                    <stop offset="100%" stop-color="#0f2f4d" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+            <div class="brand-text">
+              <h1>WildShield AI</h1>
+              <p>Predict. Protect. Respond.</p>
+            </div>
+          </div>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Primary">
+          <a href="index.html" class="nav-item"><span class="nav-icon">◉</span><span class="nav-label">Dashboard</span></a>
+          <a href="map-view.html" class="nav-item"><span class="nav-icon">◌</span><span class="nav-label">Map View</span></a>
+          <a href="alerts.html" class="nav-item"><span class="nav-icon">⚑</span><span class="nav-label">Alerts</span></a>
+          <a href="siren-control.html" class="nav-item"><span class="nav-icon">⏺</span><span class="nav-label">Siren Control</span></a>
+          <a href="analytics.html" class="nav-item"><span class="nav-icon">◫</span><span class="nav-label">Analytics</span></a>
+          <a href="notifications.html" class="nav-item"><span class="nav-icon">🔔</span><span class="nav-label">Notifications</span></a>
+          <a href="profile.html" class="nav-item active"><span class="nav-icon">👤</span><span class="nav-label">Profile</span></a>
+        </nav>
+
+        <div class="sidebar-footer">
+          <div class="status-card">
+            <p>Command health</p>
+            <strong>Profile access ready</strong>
+            <span>Secure uplink • 99.98%</span>
+          </div>
+        </div>
+      </aside>
+
+      <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+      <div class="main-panel">
+        <header class="topbar glass-card">
+          <div class="topbar-left">
+            <button class="icon-btn mobile-toggle" id="mobileToggle" aria-label="Open navigation">
+              <span></span>
+            </button>
+            <div class="topbar-title">
+              <h2>Profile</h2>
+              <p>Manage your account settings</p>
+            </div>
+          </div>
+          <div class="topbar-right">
+            <div class="date-pill" id="currentDateTime">--</div>
+            <div class="profile-menu">
+              <button class="profile-trigger" id="profileTrigger" aria-expanded="false">
+                <div class="avatar">FO</div>
+                <div class="profile-copy">
+                  <strong>Forest Officer</strong>
+                  <span>Lead operator</span>
+                </div>
+                <span class="chevron">▾</span>
+              </button>
+              <div class="profile-dropdown" id="profileDropdown">
+                <a href="profile.html">Profile</a>
+                <a href="security.html">Security</a>
+                <a href="#" id="authActionLink">Sign out</a>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main class="dashboard-grid profile-page">
+          <section class="glass-card panel-card profile-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Account</p>
+                <h3>Profile details</h3>
+              </div>
+              <button class="btn btn-primary" data-role="edit-profile-btn">Edit profile</button>
+            </div>
+
+            <div class="profile-grid">
+              <div class="profile-summary glass-card">
+                <div class="profile-avatar">FO</div>
+                <div>
+                  <h3>Forest Officer</h3>
+                  <p class="muted">Lead operator</p>
+                </div>
+              </div>
+
+              <div class="profile-fields">
+                <div class="field-group">
+                  <label for="profileName">Name</label>
+                  <input id="profileName" type="text" value="Forest Officer" readonly />
+                </div>
+                <div class="field-group">
+                  <label for="profileRole">Role</label>
+                  <input id="profileRole" type="text" value="Lead operator" readonly />
+                </div>
+                <div class="field-group">
+                  <label for="profileEmail">Email</label>
+                  <input id="profileEmail" type="email" value="officer@wildshield.ai" readonly />
+                </div>
+                <div class="field-group">
+                  <label for="profileLocation">Location</label>
+                  <input id="profileLocation" type="text" value="Central Forest Command" readonly />
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section class="glass-card panel-card security-card">
+            <div class="card-heading">
+              <div>
+                <p class="eyebrow">Security</p>
+                <h3>Login & device protection</h3>
+              </div>
+            </div>
+            <div class="security-grid">
+              <div class="security-tile">
+                <p>Two-step verification</p>
+                <strong data-role="profile-2fa-status">Enabled</strong>
+              </div>
+              <div class="security-tile">
+                <p>Last sign-in</p>
+                <strong data-role="profile-last-login">--</strong>
+              </div>
+            </div>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="api-service.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: wildshield
+      POSTGRES_PASSWORD: wildshield
+      POSTGRES_DB: wildshield
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wildshield"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://wildshield:wildshield@db:5432/wildshield
+      SMS_PROVIDER: mock
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/snapshots:/app/snapshots
+
+  # Simple static file server for the dashboard. In production, swap this for Nginx or
+  # any static host (Netlify/Vercel/S3+CloudFront) — this is just for local/demo parity.
+  frontend:
+    image: python:3.12-slim
+    working_dir: /site
+    volumes:
+      - ./frontend:/site
+    command: python -m http.server 5173
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+
+volumes:
+  db_data:

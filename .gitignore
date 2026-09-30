@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+*.egg-info/
+
+# Backend
+backend/wildshield.db
+backend/.env
+backend/snapshots/*.jpg
+!backend/snapshots/.gitkeep
+
+# AI model
+ai-model/runs/
+ai-model/*.pt
+ai-model/data/train/images/*
+ai-model/data/train/labels/*
+ai-model/data/val/images/*
+ai-model/data/val/labels/*
+!ai-model/data/**/.gitkeep
+
+# Node (if you later add tooling to frontend)
+node_modules/
+
+# OS
+.DS_Store
