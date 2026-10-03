@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -8,6 +8,18 @@ from app import models, schemas
 from app.auth import require_admin, get_current_user
 
 router = APIRouter(prefix="/cameras", tags=["cameras"])
+
+CAMERA_OFFLINE_THRESHOLD_SECONDS = 90
+
+
+def compute_camera_online(camera: models.Camera) -> bool:
+    """Returns True only if a heartbeat was received within the last 90 seconds.
+    A camera that has never sent a heartbeat or whose heartbeat is stale is
+    considered offline — computed at read time, never persisted.
+    """
+    if camera.last_heartbeat is None:
+        return False
+    return datetime.utcnow() - camera.last_heartbeat < timedelta(seconds=CAMERA_OFFLINE_THRESHOLD_SECONDS)
 
 
 @router.post("", response_model=schemas.CameraOut)
@@ -28,7 +40,12 @@ def list_cameras(zone_id: str | None = None, db: Session = Depends(get_db)):
     q = db.query(models.Camera)
     if zone_id:
         q = q.filter(models.Camera.zone_id == zone_id)
-    return q.all()
+    cameras = q.all()
+    # Recompute is_online at read time — a camera is offline if its last heartbeat
+    # is older than CAMERA_OFFLINE_THRESHOLD_SECONDS (90 s).
+    for cam in cameras:
+        cam.is_online = compute_camera_online(cam)
+    return cameras
 
 
 @router.post("/{camera_id}/heartbeat", response_model=schemas.CameraOut)

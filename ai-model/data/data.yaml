@@ -1,20 +1,16 @@
 # Dataset config for YOLOv8 training (Ultralytics format).
-# Fill in the actual class list once your annotated dataset is ready — see ai-model/README.md
-# for the annotation workflow (CVAT/Roboflow -> YOLO format export -> drop into data/).
+# Matches the Colab/Roboflow wildlife dataset: 7 classes, same order.
 
 path: ./data       # dataset root, relative to this file
 train: train/images
 val: val/images
 
-# Two-model approach (see PRD 10.3): keep the animal and human datasets/configs separate
-# so each model can be tuned independently. This file is the ANIMAL model config —
-# duplicate as data_human.yaml with nc: 1 / names: ['person'] for the restricted-zone model,
-# or merge classes here and use zone-based filtering in inference.py (also covered in the PRD).
-
-nc: 5  # number of classes — adjust to your actual priority conflict species
+nc: 7  # deer, elephant, human, leopard, lion, wild_boar, tiger
 names:
-  0: elephant
-  1: leopard
-  2: wild_boar
-  3: deer
-  4: person   # kept in the combined model so a single inference pass can serve both zone types
+  0: deer
+  1: elephant
+  2: human
+  3: leopard
+  4: lion
+  5: wild_boar
+  6: tiger

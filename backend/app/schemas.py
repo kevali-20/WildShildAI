@@ -130,3 +130,12 @@ class SecuritySettingsOut(BaseModel):
     last_login: Optional[str] = None
     events: list[dict] = []
 
+
+class HealthSummaryOut(BaseModel):
+    cameras_online: int
+    cameras_total: int
+    cameras: str
+    active_alerts: int
+    sirens_on: int
+    last_detection_time: Optional[str] = None
+

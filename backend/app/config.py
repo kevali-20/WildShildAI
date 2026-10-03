@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     default_cooldown_seconds: int = 90
     default_siren_duration_seconds: int = 45
 
+    edge_api_key: str = ""  # optional API key for edge device /api/detections ingestion (default empty = open)
+
     cors_origins: list[str] = [
         "http://localhost:5173",
         "http://127.0.0.1:5173",

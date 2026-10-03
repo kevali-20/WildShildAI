@@ -108,7 +108,7 @@
         movementDirection: 'West',
         actionTaken: 'Forest team notified • Monitoring continued',
         timestamp: '2026-07-31T22:05:00',
-        recipients: ['Forest Officers', 'Police']
+        recipients: ['Rangers', 'Forest Officers', 'Police']
       }
     ],
     villages: [
@@ -163,7 +163,19 @@
       ],
       sirenActivations: [9, 11, 14, 13, 16, 18],
       falseAlarmStats: { falseAlarms: 6, confirmedIntrusions: 35 }
-    }
+    },
+    zones: [
+      { id: 'z1', name: 'Zone A', status: 'at-risk', lat: 12.9716, lng: 77.5946, incidents: 16, village: 'Village 1' },
+      { id: 'z2', name: 'Zone B', status: 'safe', lat: 12.9790, lng: 77.6100, incidents: 19, village: 'Village 2' },
+      { id: 'z3', name: 'Zone C', status: 'safe', lat: 12.9650, lng: 77.6250, incidents: 24, village: 'Village 3' },
+      { id: 'z4', name: 'Boundary Ridge', status: 'safe', lat: 12.9880, lng: 77.6050, incidents: 11, village: 'Village 4' }
+    ],
+    cameras: [
+      { id: 'cam-01', name: 'Camera 01', zone: 'Zone A', status: 'online', lastSeenMinutesAgo: 0 },
+      { id: 'cam-02', name: 'Camera 02', zone: 'Zone B', status: 'online', lastSeenMinutesAgo: 2 },
+      { id: 'cam-03', name: 'Camera 03', zone: 'Zone C', status: 'offline', lastSeenMinutesAgo: 47 },
+      { id: 'cam-04', name: 'Camera 04', zone: 'Boundary Ridge', status: 'online', lastSeenMinutesAgo: 1 }
+    ]
   };
 
   const service = {
@@ -171,7 +183,11 @@
     // this frontend behind the same origin/reverse proxy as the backend in production.
     baseUrl: 'http://localhost:8000/api',
     // Flip to true any time you want to demo the UI with canned data and no backend running.
-    useMock: false,
+    // Also auto-enabled when ?demo=1 or ?mock=1 is in the URL.
+    useMock: (function() {
+      const p = new URLSearchParams(window.location.search);
+      return p.get('demo') === '1' || p.get('mock') === '1';
+    })(),
     tokenKey: 'wildshield_token',
     getToken() {
       return sessionStorage.getItem(this.tokenKey);
@@ -258,6 +274,69 @@
 
       if (path === '/analytics') {
         return Promise.resolve(mockState.analytics);
+      }
+
+      if (path === '/zones') {
+        return Promise.resolve(mockState.zones);
+      }
+
+      if (path === '/cameras' || path.startsWith('/cameras?')) {
+        return Promise.resolve(mockState.cameras);
+      }
+
+      if (path === '/health/summary') {
+        const cams = mockState.cameras;
+        const onlineCams = cams.filter(c => c.status === 'online').length;
+        const activeAlerts = mockState.activeAlerts.filter(a => a.status === 'active').length;
+        const sirensOn = mockState.sirens.filter(s => s.currentStatus === 'on').length;
+        const latestDet = mockState.detections[0];
+        return Promise.resolve({
+          cameras_online: onlineCams,
+          cameras_total: cams.length,
+          cameras: `${onlineCams}/${cams.length}`,
+          active_alerts: activeAlerts,
+          sirens_on: sirensOn,
+          last_detection_time: latestDet ? latestDet.timestamp : null
+        });
+      }
+
+      if (path === '/detections' && method === 'POST') {
+        const body = options.body ? JSON.parse(options.body) : {};
+        const newDet = {
+          id: `det-${Date.now()}`,
+          type: body.type || 'animal',
+          species: body.species || 'Unknown',
+          classification: body.species || 'Unknown',
+          confidence: body.confidence || 0.9,
+          location: body.location || 'Forest Boundary',
+          movementDirection: body.movement_direction || 'South',
+          boundaryCrossing: body.boundary_crossing !== undefined ? body.boundary_crossing : true,
+          riskLevel: body.risk_level || 'high',
+          affectedVillage: body.affected_village || 'Village 1',
+          sirenStatus: 'off',
+          timestamp: new Date().toISOString(),
+          snapshotUrl: null
+        };
+        mockState.detections.unshift(newDet);
+        // Also create a matching alert
+        const alert = {
+          id: `A-${Date.now()}`,
+          title: newDet.type === 'human' ? 'Human intrusion detected' : `${newDet.species} movement detected`,
+          riskLevel: newDet.riskLevel,
+          status: 'active',
+          detectedObject: newDet.species,
+          speciesOrHuman: newDet.type === 'human' ? 'Human' : `Animal • ${newDet.species}`,
+          location: newDet.location,
+          zone: 'Zone A',
+          village: newDet.affectedVillage,
+          movementDirection: newDet.movementDirection,
+          actionTaken: 'Pending response',
+          timestamp: newDet.timestamp,
+          recipients: newDet.type === 'human' ? ['Rangers', 'Forest Officers', 'Police'] : ['Forest Officers', 'Rescue/Security Team'],
+          type: newDet.type
+        };
+        mockState.activeAlerts.unshift(alert);
+        return Promise.resolve(newDet);
       }
 
       if (path.startsWith('/sirens/') && method === 'POST') {
@@ -392,6 +471,16 @@
     async getCameras(zoneId) {
       const qs = zoneId ? `?zone_id=${encodeURIComponent(zoneId)}` : '';
       return this.request(`/cameras${qs}`);
+    },
+    async postDetection(payload) {
+      return this.request('/detections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    },
+    async getHealthSummary() {
+      return this.request('/health/summary');
     }
   };
 

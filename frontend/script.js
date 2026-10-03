@@ -15,7 +15,11 @@ let currentAlerts = [];
 let currentDetections = [];
 let currentVillages = [];
 let currentSirens = [];
+let currentCameras = [];
 let pendingAfterLogin = null;
+let _leafletMap = null;  // Leaflet map instance
+let _wsDebounceTimer = null;
+let _pollingTimer = null;
 
 /* ------------------------------------------------------------------ */
 /* Basic chrome: clock, sidebar, profile menu                          */
@@ -144,16 +148,6 @@ function detailGridHtml(pairs) {
 /* Auth: sign in / sign out                                            */
 /* ------------------------------------------------------------------ */
 
-function refreshAuthUI() {
-  const api = window.WildShieldApi;
-  if (!authActionLink || !api) return;
-  if (api.isAuthenticated()) {
-    authActionLink.textContent = 'Sign out';
-  } else {
-    authActionLink.textContent = 'Sign in';
-  }
-}
-
 function openLoginModal(onSuccess) {
   pendingAfterLogin = onSuccess || null;
   openModal({
@@ -264,10 +258,96 @@ function refreshAuthUI() {
 
 refreshAuthUI();
 
+/* ------------------------------------------------------------------ */
+/* WebSocket + polling fallback                                         */
+/* ------------------------------------------------------------------ */
 
-/* ------------------------------------------------------------------ */
-/* Data hydration                                                       */
-/* ------------------------------------------------------------------ */
+function setWsPill(state) {
+  // state: 'live' | 'offline'
+  const pill = document.getElementById('wsStatusPill');
+  if (!pill) return;
+  if (state === 'live') {
+    pill.textContent = '⬤ LIVE';
+    pill.className = 'ws-pill live';
+  } else {
+    pill.textContent = '⬤ OFFLINE';
+    pill.className = 'ws-pill offline';
+  }
+}
+
+function flashAlertCard() {
+  const card = document.querySelector('[data-role="index-active-alert"]');
+  if (!card) return;
+  card.classList.add('flash-new');
+  setTimeout(() => card.classList.remove('flash-new'), 1200);
+}
+
+function initWebSocket() {
+  const wsOrigin = (window.WildShieldApi?.baseUrl || 'http://localhost:8000/api')
+    .replace(/\/api$/, '')
+    .replace(/^http/, 'ws');
+  const wsUrl = `${wsOrigin}/ws`;
+
+  let ws;
+  try {
+    ws = new WebSocket(wsUrl);
+  } catch (e) {
+    setWsPill('offline');
+    startPollingFallback();
+    return;
+  }
+
+  ws.addEventListener('open', () => {
+    setWsPill('live');
+    stopPollingFallback();
+  });
+
+  ws.addEventListener('message', (event) => {
+    let msg;
+    try { msg = JSON.parse(event.data); } catch { return; }
+    if (msg && msg.type === 'new_alert') {
+      toast('🚨 New alert received', 'error', 3500);
+      flashAlertCard();
+      clearTimeout(_wsDebounceTimer);
+      _wsDebounceTimer = setTimeout(() => hydrateDashboard(), 500);
+    } else if (msg && msg.type === 'siren_off') {
+      toast('🔕 Siren auto-off completed', 'info', 3000);
+      clearTimeout(_wsDebounceTimer);
+      _wsDebounceTimer = setTimeout(() => hydrateDashboard(), 250);
+    }
+  });
+
+  ws.addEventListener('close', () => {
+    setWsPill('offline');
+    startPollingFallback();
+  });
+
+  ws.addEventListener('error', () => {
+    setWsPill('offline');
+    ws.close();
+    startPollingFallback();
+  });
+}
+
+function startPollingFallback() {
+  if (_pollingTimer) return;
+  _pollingTimer = setInterval(() => hydrateDashboard(), 10_000);
+}
+
+function stopPollingFallback() {
+  if (_pollingTimer) { clearInterval(_pollingTimer); _pollingTimer = null; }
+}
+
+// Mock-mode: WS won't connect, so go straight to polling; show neutral MOCK pill
+if (window.WildShieldApi?.useMock) {
+  const pill = document.getElementById('wsStatusPill');
+  if (pill) { pill.textContent = '\u2b24 MOCK'; pill.className = 'ws-pill mock'; }
+  startPollingFallback();
+} else {
+  initWebSocket();
+}
+
+
 
 async function hydrateDashboard() {
   const api = window.WildShieldApi;
@@ -275,20 +355,29 @@ async function hydrateDashboard() {
 
   try {
     const needsAnalytics = Boolean(document.querySelector('[data-role="analytics-species"]'));
+    const needsCameras  = Boolean(document.querySelector('[data-role="cam-health-grid"]'));
+    const needsLeaflet  = Boolean(document.getElementById('leafletMap'));
 
-    const [detections, alerts, villages, sirens, mapData, analytics] = await Promise.all([
+    const [detections, alerts, villages, sirens, mapData, analytics, cameras, healthSummary] = await Promise.all([
       api.getDetections(),
       api.getActiveAlerts(),
       api.getVillages(),
       api.getSirens(),
       api.getMapData(),
-      needsAnalytics ? api.getAnalytics() : Promise.resolve(null)
+      needsAnalytics ? api.getAnalytics() : Promise.resolve(null),
+      needsCameras ? api.getCameras() : Promise.resolve(null),
+      api.getHealthSummary ? api.getHealthSummary().catch(() => null) : Promise.resolve(null)
     ]);
 
     currentDetections = detections;
     currentAlerts = alerts;
     currentVillages = villages;
     currentSirens = sirens;
+    if (cameras) currentCameras = cameras;
+
+    if (healthSummary) {
+      renderSidebarHealth(healthSummary);
+    }
 
     if (document.querySelector('[data-role="detections-table"]')) {
       renderDetectionsTable(detections);
@@ -318,6 +407,24 @@ async function hydrateDashboard() {
       wireMapFullResponse(mapData, villages, sirens);
     }
 
+    if (needsLeaflet && !_leafletMap) {
+      try {
+        const zones = await api.getZones();
+        initLeafletMap(zones, sirens);
+      } catch (e) {
+        // zones unavailable, map markers still show on existing map
+      }
+    } else if (needsLeaflet && _leafletMap) {
+      try {
+        const zones = await api.getZones();
+        updateLeafletMarkers(zones, sirens);
+      } catch (_) {}
+    }
+
+    if (needsCameras && cameras) {
+      renderCameraHealth(cameras);
+    }
+
     if (document.querySelector('[data-role="index-active-alert"]')) {
       renderIndexHero(detections, alerts, villages, sirens);
     }
@@ -339,6 +446,37 @@ async function hydrateDashboard() {
   } catch (error) {
     console.error('Failed to hydrate WildShield UI', error);
     toast('Could not reach the WildShield backend. Is it running on :8000?', 'error', 5000);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Sidebar health summary card (Rule 3)                                */
+/* ------------------------------------------------------------------ */
+
+function renderSidebarHealth(summary) {
+  if (!summary) return;
+  const summaryEl = document.getElementById('sidebarHealthSummary');
+  const detailsEl = document.getElementById('sidebarHealthDetails');
+  const uplinkEl = document.getElementById('sidebarUplinkStatus');
+
+  const camerasText = summary.cameras || `${summary.cameras_online}/${summary.cameras_total}`;
+  const summaryText = `${camerasText} Cams • ${summary.sirens_on} Siren${summary.sirens_on === 1 ? '' : 's'} On`;
+  if (summaryEl) {
+    summaryEl.textContent = summaryText;
+  }
+
+  const alertText = `${summary.active_alerts} active alert${summary.active_alerts === 1 ? '' : 's'}`;
+  let timeText = 'No events';
+  if (summary.last_detection_time) {
+    const d = new Date(summary.last_detection_time);
+    timeText = isNaN(d) ? summary.last_detection_time : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+  const detailsText = `${alertText} • Last: ${timeText}`;
+
+  if (detailsEl) {
+    detailsEl.textContent = detailsText;
+  } else if (uplinkEl) {
+    uplinkEl.textContent = detailsText;
   }
 }
 
@@ -434,6 +572,13 @@ function renderAlertCards(alerts, { readState } = {}) {
 
   return alerts.map((alert) => {
     const isRead = Boolean(alert.read || (readState && readState.has(alert.id)));
+    const isHuman = (alert.detectedObject && alert.detectedObject.toLowerCase().includes('human')) ||
+                    (alert.speciesOrHuman && alert.speciesOrHuman.toLowerCase().includes('human')) ||
+                    alert.type === 'human';
+    const dispatchBadge = isHuman
+      ? `<span class="dispatch-badge human" title="Discreet notification protocol">SMS only – discreet</span>`
+      : `<span class="dispatch-badge animal" title="Acoustic deterrent and emergency notification">Siren + SMS</span>`;
+
     return `
     <article class="glass-card alert-card ${alert.riskLevel} ${alert.status} clickable notification-item ${isRead ? 'is-read' : ''}" data-alert-id="${alert.id}">
       <div class="alert-card-top">
@@ -441,7 +586,8 @@ function renderAlertCards(alerts, { readState } = {}) {
           <p class="eyebrow">Alert ID: ${alert.id}</p>
           <h3>${alert.title}</h3>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div class="alert-badges" style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+          ${dispatchBadge}
           ${isRead ? '<span class="status-indicator-read" title="Marked as read">✓ Read</span>' : '<span class="status-indicator-unread" title="Unread alert">● New</span>'}
           <span class="risk-badge ${alert.riskLevel}">${capitalize(alert.riskLevel)}</span>
         </div>
@@ -603,28 +749,34 @@ function openVillageModal(village) {
     `,
   });
 
-  overlay.querySelector('#villageSirenBtn').addEventListener('click', async (e) => {
+  overlay.querySelector('#villageSirenBtn').addEventListener('click', (e) => {
     const btn = e.currentTarget;
-    btn.disabled = true;
-    btn.textContent = 'Working…';
-    try {
-      const api = window.WildShieldApi;
-      await withAuth(async () => {
-        if (isOn) {
-          await api.deactivateSiren(village.sirenId);
-          toast(`Siren deactivated for ${village.name}`, 'success');
-        } else {
-          await api.activateSiren(village.sirenId);
-          toast(`Siren activated for ${village.name}`, 'success');
+    confirmSirenAction({
+      sirenName: village.name,
+      isOn,
+      onConfirm: async () => {
+        btn.disabled = true;
+        btn.textContent = 'Working…';
+        try {
+          const api = window.WildShieldApi;
+          await withAuth(async () => {
+            if (isOn) {
+              await api.deactivateSiren(village.sirenId);
+              toast(`Siren deactivated for ${village.name}`, 'success');
+            } else {
+              await api.activateSiren(village.sirenId);
+              toast(`Siren activated for ${village.name}`, 'success');
+            }
+          });
+          closeModal();
+          await hydrateDashboard();
+        } catch (err) {
+          toast(err.message || 'Siren action failed', 'error');
+          btn.disabled = false;
+          btn.textContent = isOn ? 'Deactivate siren' : 'Activate siren';
         }
-      });
-      closeModal();
-      await hydrateDashboard();
-    } catch (err) {
-      toast(err.message || 'Siren action failed', 'error');
-      btn.disabled = false;
-      btn.textContent = isOn ? 'Deactivate siren' : 'Activate siren';
-    }
+      }
+    });
   });
 }
 
@@ -671,28 +823,35 @@ function renderSirens(sirens) {
   }).join('');
 
   container.querySelectorAll('[data-siren-toggle]').forEach((btn) => {
-    btn.addEventListener('click', async () => {
+    btn.addEventListener('click', () => {
       const id = btn.dataset.sirenToggle;
       const isOn = btn.dataset.sirenState === 'on';
-      btn.disabled = true;
-      btn.textContent = 'Working…';
-      try {
-        const api = window.WildShieldApi;
-        await withAuth(async () => {
-          if (isOn) {
-            await api.deactivateSiren(id);
-            toast('Siren deactivated', 'success');
-          } else {
-            await api.activateSiren(id);
-            toast('Siren activated', 'success');
+      const siren = currentSirens.find((s) => s.id === id);
+      confirmSirenAction({
+        sirenName: siren ? siren.name : id,
+        isOn,
+        onConfirm: async () => {
+          btn.disabled = true;
+          btn.textContent = 'Working…';
+          try {
+            const api = window.WildShieldApi;
+            await withAuth(async () => {
+              if (isOn) {
+                await api.deactivateSiren(id);
+                toast('Siren deactivated', 'success');
+              } else {
+                await api.activateSiren(id);
+                toast('Siren activated', 'success');
+              }
+            });
+            await hydrateDashboard();
+          } catch (err) {
+            toast(err.message || 'Siren action failed', 'error');
+            btn.disabled = false;
+            btn.textContent = isOn ? 'Deactivate siren' : 'Activate siren';
           }
-        });
-        await hydrateDashboard();
-      } catch (err) {
-        toast(err.message || 'Siren action failed', 'error');
-        btn.disabled = false;
-        btn.textContent = isOn ? 'Deactivate siren' : 'Activate siren';
-      }
+        }
+      });
     });
   });
 
@@ -812,22 +971,28 @@ function openSirenQuickModal(siren) {
       <button class="btn-sm ${isOn ? 'btn-deactivate' : 'btn-activate'}" id="quickSirenBtn">${isOn ? 'Deactivate' : 'Activate'}</button>
     `,
   });
-  overlay.querySelector('#quickSirenBtn').addEventListener('click', async (e) => {
+  overlay.querySelector('#quickSirenBtn').addEventListener('click', (e) => {
     const btn = e.currentTarget;
-    btn.disabled = true;
-    try {
-      const api = window.WildShieldApi;
-      await withAuth(async () => {
-        if (isOn) await api.deactivateSiren(siren.id);
-        else await api.activateSiren(siren.id);
-      });
-      toast('Siren state synchronized', 'success');
-      closeModal();
-      await hydrateDashboard();
-    } catch (err) {
-      toast(err.message || 'Siren action failed', 'error');
-      btn.disabled = false;
-    }
+    confirmSirenAction({
+      sirenName: siren.name,
+      isOn,
+      onConfirm: async () => {
+        btn.disabled = true;
+        try {
+          const api = window.WildShieldApi;
+          await withAuth(async () => {
+            if (isOn) await api.deactivateSiren(siren.id);
+            else await api.activateSiren(siren.id);
+          });
+          toast('Siren state synchronized', 'success');
+          closeModal();
+          await hydrateDashboard();
+        } catch (err) {
+          toast(err.message || 'Siren action failed', 'error');
+          btn.disabled = false;
+        }
+      }
+    });
   });
 }
 
@@ -866,11 +1031,38 @@ function renderIndexHero(detections, alerts, villages, sirens) {
   const feedEl = document.querySelector('[data-role="live-feed"]');
   if (feedEl) {
     if (latestDetection) {
+      const backendOrigin = (window.WildShieldApi?.baseUrl || 'http://localhost:8000/api').replace(/\/api$/, '');
+      const snapshotUrl = latestDetection.snapshotUrl
+        ? (latestDetection.snapshotUrl.startsWith('http') ? latestDetection.snapshotUrl : `${backendOrigin}${latestDetection.snapshotUrl}`)
+        : null;
+      const confVal = latestDetection.confidence != null
+        ? (Number(latestDetection.confidence) <= 1 ? Number(latestDetection.confidence) * 100 : Number(latestDetection.confidence))
+        : null;
+      const confPct = confVal != null ? confVal.toFixed(1) : null;
+      const confBarHtml = confPct != null
+        ? `<div class="conf-bar-wrap" aria-label="Confidence ${confPct}%">
+             <div class="conf-bar-track"><div class="conf-bar-fill" style="width:${confPct}%"></div></div>
+             <span class="conf-bar-label">${confPct}%</span>
+           </div>`
+        : '';
       feedEl.innerHTML = `
+        <div class="feed-snapshot-wrap">
+          ${snapshotUrl
+            ? `<img class="feed-snapshot" src="${snapshotUrl}" alt="Latest detection snapshot" loading="lazy" onerror="this.style.display='none'; if (this.nextElementSibling) this.nextElementSibling.style.display='flex';" />
+               <div class="feed-snapshot-placeholder" style="display:none;">
+                 <span class="placeholder-icon">📹</span>
+                 <span>Live camera feed • Awaiting snapshot</span>
+               </div>`
+            : `<div class="feed-snapshot-placeholder">
+                 <span class="placeholder-icon">📹</span>
+                 <span>Live camera feed • Sensor trigger only</span>
+               </div>`
+          }
+        </div>
         <span class="feed-badge">${latestDetection.type === 'human' ? 'Human detection' : 'Animal detection'}</span>
         <h4>${latestDetection.location}</h4>
-        <p>Detected object: ${latestDetection.species}</p>
-        <p>Confidence: ${formatConfidence(latestDetection.confidence)}</p>
+        <p>Detected object: <strong>${latestDetection.species}</strong></p>
+        ${confBarHtml}
         <p>Detection time: ${new Date(latestDetection.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
         <p>Forest zone: ${latestDetection.affectedVillage}</p>
       `;
@@ -931,12 +1123,20 @@ function renderIndexHero(detections, alerts, villages, sirens) {
   if (alertCard) {
     const body = alertCard.querySelector('.alert-body');
     if (activeAlert) {
+      const isHuman = (activeAlert.detectedObject && activeAlert.detectedObject.toLowerCase().includes('human')) ||
+                      (activeAlert.speciesOrHuman && activeAlert.speciesOrHuman.toLowerCase().includes('human')) ||
+                      activeAlert.type === 'human';
+      const dispatchBadge = isHuman
+        ? `<span class="dispatch-badge human" title="Discreet notification protocol">SMS only – discreet</span>`
+        : `<span class="dispatch-badge animal" title="Acoustic deterrent and emergency notification">Siren + SMS</span>`;
+
       body.innerHTML = `
         <div class="alert-icon">${activeAlert.detectedObject === 'Human' ? '🧍' : '🦌'}</div>
         <h4>${activeAlert.title}</h4>
+        <div style="margin: 8px 0 10px 0;">${dispatchBadge}</div>
         <p><strong>Direction:</strong> ${activeAlert.movementDirection}</p>
         <p><strong>Target village:</strong> ${activeAlert.village}</p>
-        <p><strong>Risk level:</strong> ${capitalize(activeAlert.riskLevel)}</p>
+        <p><strong>Risk level:</strong> <span class="risk ${activeAlert.riskLevel}">${capitalize(activeAlert.riskLevel)}</span></p>
         <p><strong>Time:</strong> ${formatTimestamp(activeAlert.timestamp)}</p>
         <p><strong>Status:</strong> ${capitalize(activeAlert.status)}</p>
       `;
@@ -961,20 +1161,26 @@ function renderIndexHero(detections, alerts, villages, sirens) {
           const isOn = matchedSiren.currentStatus === 'on';
           sirenBtn.disabled = false;
           sirenBtn.textContent = isOn ? `SIREN ON — ${activeAlert.village.toUpperCase()} (tap to stop)` : `ACTIVATE SIREN — ${activeAlert.village.toUpperCase()}`;
-          sirenBtn.onclick = async (e) => {
+          sirenBtn.onclick = (e) => {
             e.stopPropagation();
-            sirenBtn.disabled = true;
-            try {
-              await withAuth(async () => {
-                if (isOn) await window.WildShieldApi.deactivateSiren(matchedSiren.id);
-                else await window.WildShieldApi.activateSiren(matchedSiren.id);
-              });
-              toast('Siren updated', 'success');
-              await hydrateDashboard();
-            } catch (err) {
-              toast(err.message || 'Siren action failed', 'error');
-              sirenBtn.disabled = false;
-            }
+            confirmSirenAction({
+              sirenName: `${activeAlert.village} (${isOn ? 'ON' : 'OFF'})`,
+              isOn,
+              onConfirm: async () => {
+                sirenBtn.disabled = true;
+                try {
+                  await withAuth(async () => {
+                    if (isOn) await window.WildShieldApi.deactivateSiren(matchedSiren.id);
+                    else await window.WildShieldApi.activateSiren(matchedSiren.id);
+                  });
+                  toast('Siren updated', 'success');
+                  await hydrateDashboard();
+                } catch (err) {
+                  toast(err.message || 'Siren action failed', 'error');
+                  sirenBtn.disabled = false;
+                }
+              }
+            });
           };
         } else {
           sirenBtn.disabled = true;
@@ -995,6 +1201,7 @@ function renderIndexHero(detections, alerts, villages, sirens) {
     const riskOrder = { low: 25, medium: 50, high: 75, critical: 100 };
     const pct = activeAlert ? (riskOrder[activeAlert.riskLevel] || 25) : 10;
     gaugeFill.style.width = `${pct}%`;
+    gaugeFill.className = activeAlert ? activeAlert.riskLevel : 'low';
   }
 
   const overviewEl = document.querySelector('[data-role="index-overview"]');
@@ -1037,7 +1244,7 @@ function renderHumanIntrusion(detections, alerts) {
         ])}
         <div class="routing-block">
           <p>Generated alert for</p>
-          <div class="recipient-pills"><span>Forest Officers</span><span>Police</span><span>Rescue/Security Team</span></div>
+          <div class="recipient-pills"><span>Rangers</span><span>Forest Officers</span><span>Police</span></div>
         </div>
       `;
     } else {
@@ -1086,7 +1293,7 @@ function renderBarList(container, items, { suffix = '' } = {}) {
   `).join('');
 }
 
-function renderSvgTrend(container, values, colorHex) {
+function renderSvgTrend(container, values, colorHex, dateLabels) {
   if (!container) return;
   const grid = container.querySelector('.line-grid');
   const w = 600, h = 220;
@@ -1099,12 +1306,21 @@ function renderSvgTrend(container, values, colorHex) {
   const points = values.map((v, i) => [i * stepX, h - 24 - (v / max) * (h - 48)]);
   const linePoints = points.map((p) => p.join(',')).join(' ');
   const areaPoints = `0,${h} ${linePoints} ${w},${h}`;
+
+  const labelsHtml = dateLabels && dateLabels.length
+    ? dateLabels.map((label, i) => {
+        const x = i * stepX;
+        return `<text x="${x}" y="${h - 4}" text-anchor="middle" fill="#94a3b8" font-size="18" font-family="Inter, sans-serif">${label}</text>`;
+      }).join('')
+    : '';
+
   container.innerHTML = `
     ${grid ? grid.outerHTML : ''}
     <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" style="position:relative;z-index:1;width:100%;height:100%;display:block;">
       <polygon points="${areaPoints}" fill="${colorHex}" opacity="0.16"></polygon>
       <polyline points="${linePoints}" fill="none" stroke="${colorHex}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
       ${points.map((p) => `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="${colorHex}"></circle>`).join('')}
+      ${labelsHtml}
     </svg>
   `;
 }
@@ -1112,8 +1328,27 @@ function renderSvgTrend(container, values, colorHex) {
 function renderAnalytics(analytics) {
   renderBarList(document.querySelector('[data-role="analytics-species"]'), analytics.speciesCounts);
 
-  renderSvgTrend(document.querySelector('[data-role="analytics-wildlife-trend"]'), analytics.wildlifeIntrusions, '#16a34a');
-  renderSvgTrend(document.querySelector('[data-role="analytics-human-trend"]'), analytics.humanIntrusions, '#2563eb');
+  // Real date labels for 6-day trend
+  function makeDateLabels(count) {
+    const labels = [];
+    for (let i = count - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      labels.push(d.toLocaleDateString([], { month: 'short', day: 'numeric' }));
+    }
+    return labels;
+  }
+
+  renderSvgTrend(
+    document.querySelector('[data-role="analytics-wildlife-trend"]'),
+    analytics.wildlifeIntrusions, '#16a34a',
+    makeDateLabels(analytics.wildlifeIntrusions.length)
+  );
+  renderSvgTrend(
+    document.querySelector('[data-role="analytics-human-trend"]'),
+    analytics.humanIntrusions, '#2563eb',
+    makeDateLabels(analytics.humanIntrusions.length)
+  );
 
   const donut = document.querySelector('[data-role="analytics-risk-donut"]');
   const legend = document.querySelector('[data-role="analytics-risk-legend"]');
@@ -1136,7 +1371,13 @@ function renderAnalytics(analytics) {
     `).join('');
   }
 
-  renderBarList(document.querySelector('[data-role="analytics-siren-history"]'), analytics.sirenActivations.map((v, i) => ({ label: `Day ${i + 1}`, value: v })));
+  renderBarList(document.querySelector('[data-role="analytics-siren-history"]'),
+    analytics.sirenActivations.map((v, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (analytics.sirenActivations.length - 1 - i));
+      const label = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+      return { label, value: v };
+    }));
 
   const metrics = document.querySelector('[data-role="analytics-metrics"]');
   if (metrics) {
@@ -1358,10 +1599,256 @@ function capitalize(value) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Confirm modal for siren activate / deactivate (Rule 5)             */
+/* ------------------------------------------------------------------ */
+
+function confirmSirenAction({ sirenName, isOn, onConfirm }) {
+  const action = isOn ? 'deactivate' : 'activate';
+  const actionLabel = isOn ? 'Deactivate' : 'Activate';
+  const overlay = openModal({
+    eyebrow: 'Confirm siren action',
+    title: `${actionLabel} siren: ${sirenName}`,
+    bodyHtml: `<p style="line-height:1.6;">
+      ${isOn
+        ? `Deactivating the siren for <strong>${sirenName}</strong> will silence the acoustic alert. Ensure the threat has cleared before proceeding.`
+        : `Activating the siren for <strong>${sirenName}</strong> will sound the acoustic deterrent and alert all assigned recipients.`
+      }
+    </p>`,
+    actionsHtml: `
+      <button class="btn-sm btn-outline" data-role="modal-close">Cancel</button>
+      <button class="btn-sm ${isOn ? 'btn-deactivate' : 'btn-activate'}" id="confirmSirenOk">${actionLabel} siren</button>
+    `,
+  });
+  overlay.querySelector('#confirmSirenOk').addEventListener('click', () => {
+    closeModal();
+    onConfirm();
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* Camera health panel (dashboard)                                     */
+/* ------------------------------------------------------------------ */
+
+function renderCameraHealth(cameras) {
+  const grid = document.querySelector('[data-role="cam-health-grid"]');
+  const pill = document.getElementById('camHealthPill');
+  if (!grid) return;
+
+  if (!cameras || !cameras.length) {
+    grid.innerHTML = `<p class="empty-state">No cameras configured.</p>`;
+    if (pill) { pill.textContent = 'No cameras'; pill.className = 'status-pill warning'; }
+    return;
+  }
+
+  const isOnlineFn = (cam) => cam.status === 'online' || cam.is_online === true;
+  const onlineCount = cameras.filter(isOnlineFn).length;
+  if (pill) {
+    pill.textContent = `${onlineCount}/${cameras.length} online`;
+    pill.className = `status-pill ${onlineCount === cameras.length ? 'online' : onlineCount > 0 ? 'warning' : 'danger'}`;
+  }
+
+  grid.innerHTML = cameras.map((cam) => {
+    const isOnline = isOnlineFn(cam);
+    const minutesAgo = cam.lastSeenMinutesAgo != null
+      ? cam.lastSeenMinutesAgo
+      : (cam.last_heartbeat ? Math.max(0, Math.floor((Date.now() - new Date(cam.last_heartbeat).getTime()) / 60000)) : 0);
+    const lastSeen = minutesAgo === 0 ? 'Just now'
+      : minutesAgo === 1 ? '1 min ago'
+      : `${minutesAgo} min ago`;
+    const zoneName = cam.zone || cam.zone_id || 'Forest Zone';
+    return `
+      <div class="cam-health-item ${isOnline ? 'online' : 'offline'}">
+        <div class="cam-health-icon">${isOnline ? '📹' : '📷'}</div>
+        <div class="cam-health-info">
+          <strong>${cam.name}</strong>
+          <span class="muted">${zoneName}</span>
+        </div>
+        <div class="cam-health-status">
+          <span class="cam-status-dot ${isOnline ? 'online' : 'offline'}"></span>
+          <span class="cam-status-label">${isOnline ? 'Online' : 'Offline'}</span>
+          <span class="cam-last-seen muted">${lastSeen}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/* ------------------------------------------------------------------ */
+/* Leaflet map (map-view.html)                                         */
+/* ------------------------------------------------------------------ */
+
+let _leafletMarkers = [];
+
+function initLeafletMap(zones, sirens) {
+  const container = document.getElementById('leafletMap');
+  if (!container || typeof L === 'undefined') return;
+
+  // Centre on mean lat/lng of zones, or default to a generic forest location
+  const lats = zones.map((z) => z.lat).filter(Boolean);
+  const lngs = zones.map((z) => z.lng).filter(Boolean);
+  const centerLat = lats.length ? lats.reduce((a, b) => a + b, 0) / lats.length : 12.97;
+  const centerLng = lngs.length ? lngs.reduce((a, b) => a + b, 0) / lngs.length : 77.60;
+
+  _leafletMap = L.map('leafletMap', { zoomControl: true }).setView([centerLat, centerLng], 13);
+
+  // Try to load tiles; show fallback message if they fail
+  const tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+    maxZoom: 18
+  });
+
+  tileLayer.on('tileerror', () => {
+    const errEl = document.getElementById('leafletTileError');
+    if (errEl) errEl.style.display = 'block';
+  });
+  tileLayer.addTo(_leafletMap);
+
+  addLeafletMarkers(zones, sirens);
+
+  // Update status pill
+  const pill = document.getElementById('leafletStatusPill');
+  if (pill) { pill.textContent = `${zones.length} zones`; pill.className = 'status-pill online'; }
+}
+
+function addLeafletMarkers(zones, sirens) {
+  if (!_leafletMap || typeof L === 'undefined') return;
+
+  _leafletMarkers.forEach((m) => m.remove());
+  _leafletMarkers = [];
+
+  zones.forEach((zone) => {
+    if (!zone.lat || !zone.lng) return;
+    const isAtRisk = zone.status === 'at-risk';
+    const matchedSiren = sirens && sirens.find((s) => s.village === zone.village);
+    const sirenOn = matchedSiren && matchedSiren.currentStatus === 'on';
+
+    const colorClass = isAtRisk ? 'leaflet-marker-atrisk' : 'leaflet-marker-safe';
+    const icon = L.divIcon({
+      className: `leaflet-ws-marker ${colorClass}${isAtRisk ? ' pulse-marker' : ''}`,
+      html: `<div class="lm-dot"></div><span class="lm-label">${zone.name}</span>`,
+      iconSize: [120, 36],
+      iconAnchor: [60, 18]
+    });
+
+    const marker = L.marker([zone.lat, zone.lng], { icon }).addTo(_leafletMap);
+
+    const popupHtml = `
+      <div class="leaflet-popup-content-custom">
+        <strong>${zone.name}</strong>
+        <p>Village: ${zone.village}</p>
+        <p>Status: <b>${capitalize(zone.status)}</b></p>
+        <p>Incidents: ${zone.incidents}</p>
+        <p>Siren: <b>${sirenOn ? 'ON 🔔' : 'OFF 🔕'}</b></p>
+        ${matchedSiren ? `<button class="lm-siren-btn btn-sm ${sirenOn ? 'btn-deactivate' : 'btn-activate'}"
+          data-siren-id="${matchedSiren.id}" data-siren-on="${sirenOn}"
+          onclick="handleLeafletSirenToggle('${matchedSiren.id}', ${sirenOn}, this)">
+          ${sirenOn ? 'Deactivate siren' : 'Activate siren'}
+        </button>` : ''}
+      </div>`;
+    marker.bindPopup(popupHtml, { maxWidth: 220 });
+    _leafletMarkers.push(marker);
+  });
+}
+
+function updateLeafletMarkers(zones, sirens) {
+  addLeafletMarkers(zones, sirens);
+}
+
+// Called from Leaflet popup button (global scope needed)
+window.handleLeafletSirenToggle = function(sirenId, isOn, btn) {
+  const siren = currentSirens.find((s) => s.id === sirenId);
+  confirmSirenAction({
+    sirenName: siren ? siren.name : sirenId,
+    isOn,
+    onConfirm: async () => {
+      if (btn) { btn.disabled = true; btn.textContent = 'Working\u2026'; }
+      try {
+        const api = window.WildShieldApi;
+        await withAuth(async () => {
+          if (isOn) await api.deactivateSiren(sirenId);
+          else await api.activateSiren(sirenId);
+        });
+        toast(isOn ? 'Siren deactivated' : 'Siren activated', 'success');
+        await hydrateDashboard();
+      } catch (err) {
+        toast(err.message || 'Siren action failed', 'error');
+        if (btn) { btn.disabled = false; btn.textContent = isOn ? 'Deactivate siren' : 'Activate siren'; }
+      }
+    }
+  });
+};
+
+/* ------------------------------------------------------------------ */
+/* Demo panel (?demo=1)                                                */
+/* ------------------------------------------------------------------ */
+
+function setupDemoPanel() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('demo') !== '1') return;
+
+  const panel = document.getElementById('demoPanel');
+  if (panel) panel.style.display = '';
+
+  const animalBtn = document.getElementById('demoAnimalBtn');
+  const humanBtn  = document.getElementById('demoHumanBtn');
+
+  async function injectDetection(payload) {
+    const btn = payload.type === 'human' ? humanBtn : animalBtn;
+    if (btn) { btn.disabled = true; btn.textContent = 'Injecting\u2026'; }
+    try {
+      const api = window.WildShieldApi;
+      await api.postDetection(payload);
+      toast(`\ud83d\udea8 Demo ${payload.type} alert injected`, 'success', 3000);
+      await hydrateDashboard();
+      flashAlertCard();
+    } catch (err) {
+      toast(err.message || 'Demo injection failed', 'error');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = btn.id === 'demoAnimalBtn' ? '🦁 Inject animal alert (camera-01)' : '🧍 Inject human alert (camera-02)'; }
+    }
+  }
+
+  animalBtn?.addEventListener('click', () => {
+    const animalCam = currentCameras.find((c) => (c.name || '').includes('01') || (c.zone || '').includes('Zone A'))?.id || 'camera-01';
+    return injectDetection({
+      type: 'animal',
+      event_type: 'ANIMAL_DETECTED',
+      species: 'Lion',
+      confidence: 0.93,
+      location: 'Forest Boundary - Zone A',
+      movement_direction: 'South-East',
+      boundary_crossing: true,
+      risk_level: 'critical',
+      affected_village: 'Village 1',
+      camera_id: animalCam
+    });
+  });
+
+  humanBtn?.addEventListener('click', () => {
+    const humanCam = currentCameras.find((c) => (c.name || '').includes('02') || (c.zone || '').includes('Zone B') || (c.zone || '').includes('Zone C'))?.id || 'camera-02';
+    return injectDetection({
+      type: 'human',
+      event_type: 'PERSON_DETECTED',
+      species: 'Human',
+      confidence: 0.88,
+      location: 'North Ridge Access Point',
+      movement_direction: 'Northwest',
+      boundary_crossing: true,
+      risk_level: 'high',
+      affected_village: 'Village 2',
+      camera_id: humanCam
+    });
+  });
+}
+
+/* ------------------------------------------------------------------ */
 /* Boot                                                                 */
 /* ------------------------------------------------------------------ */
 
 setupProfileEdit();
 setupSecurityPage();
+setupDemoPanel();
 hydrateDashboard();
+
+
 

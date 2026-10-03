@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.database import Base, engine
 from app.services.ws_manager import manager
-from app.routers import auth, zones, cameras, alerts, contacts, frontend_compat
+from app.routers import auth, zones, cameras, alerts, contacts, frontend_compat, health
 
 from app.config import settings
 
@@ -38,16 +38,14 @@ app.include_router(cameras.router, prefix="/api")
 app.include_router(alerts.router, prefix="/api")
 app.include_router(contacts.router, prefix="/api")
 app.include_router(frontend_compat.router, prefix="/api")
+app.include_router(health.router, prefix="/api")
+app.include_router(health.router)
 
 
 @app.get("/")
 def root():
     return {"status": "ok", "service": "wildshield-ai-backend"}
 
-
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
 
 
 @app.websocket("/ws")
