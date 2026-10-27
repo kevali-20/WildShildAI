@@ -1,0 +1,18 @@
+{
+  "name": "wildshield-ai",
+  "version": "1.0.0",
+  "description": "WildShield AI — AI-Powered Early Warning System for Human-Wildlife Conflict Zones",
+  "scripts": {
+    "build": "node scripts/build-env.js",
+    "test": "node scripts/validate-frontend.js"
+  },
+  "keywords": [
+    "wildshield",
+    "wildlife-detection",
+    "early-warning-system",
+    "fastapi",
+    "vercel"
+  ],
+  "author": "WildShield Team",
+  "license": "MIT"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "wildshield-ai-frontend",
+  "version": "1.0.0",
+  "description": "WildShield AI — Frontend Dashboard",
+  "scripts": {
+    "build": "node build-env.js"
+  },
+  "keywords": [
+    "wildshield",
+    "dashboard",
+    "frontend"
+  ],
+  "author": "WildShield Team",
+  "license": "MIT"
+}

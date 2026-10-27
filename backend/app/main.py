@@ -18,11 +18,13 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Configurable CORS origins via settings.cors_origins
+# Configurable CORS origins via settings.cors_origins and Vercel regex
 origins = settings.cors_origins
+origin_regex = getattr(settings, "cors_origin_regex", None)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins if origins else ["*"],
+    allow_origin_regex=origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -177,10 +177,40 @@
     ]
   };
 
+  function resolveApiBaseUrl() {
+    // 1. Environment variable injected via window.__ENV__.API_URL (e.g. from Vercel build)
+    if (typeof window !== 'undefined' && window.__ENV__ && window.__ENV__.API_URL) {
+      return String(window.__ENV__.API_URL).trim().replace(/\/+$/, '');
+    }
+    // 2. Global variable or meta tag override
+    if (typeof window !== 'undefined' && window.WILDSHIELD_API_URL) {
+      return String(window.WILDSHIELD_API_URL).trim().replace(/\/+$/, '');
+    }
+    if (typeof document !== 'undefined') {
+      const meta = document.querySelector('meta[name="api-base-url"]');
+      if (meta && meta.content) {
+        return meta.content.trim().replace(/\/+$/, '');
+      }
+    }
+    // 3. Runtime override in storage (helpful for QA / staging switching)
+    try {
+      const stored = sessionStorage.getItem('wildshield_api_url') || localStorage.getItem('wildshield_api_url');
+      if (stored) return stored.trim().replace(/\/+$/, '');
+    } catch (_) {}
+    // 4. Default for local development
+    if (typeof window !== 'undefined' && window.location) {
+      const host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '') {
+        return 'http://localhost:8000/api';
+      }
+    }
+    // 5. Default production fallback (relative /api for reverse-proxy or same-origin deployments)
+    return '/api';
+  }
+
   const service = {
-    // Points at the FastAPI backend (see /backend). Change to '/api' instead if you put
-    // this frontend behind the same origin/reverse proxy as the backend in production.
-    baseUrl: 'http://localhost:8000/api',
+    // Points at the backend API. Evaluated dynamically from environment, meta tag, or local fallback.
+    baseUrl: resolveApiBaseUrl(),
     // Flip to true any time you want to demo the UI with canned data and no backend running.
     // Also auto-enabled when ?demo=1 or ?mock=1 is in the URL.
     useMock: (function() {

@@ -283,10 +283,22 @@ function flashAlertCard() {
 }
 
 function initWebSocket() {
-  const wsOrigin = (window.WildShieldApi?.baseUrl || 'http://localhost:8000/api')
-    .replace(/\/api$/, '')
-    .replace(/^http/, 'ws');
-  const wsUrl = `${wsOrigin}/ws`;
+  const base = window.WildShieldApi?.baseUrl || 'http://localhost:8000/api';
+  let wsUrl;
+  if (base.startsWith('http://') || base.startsWith('https://')) {
+    const wsOrigin = base.replace(/\/api$/, '').replace(/^http/, 'ws');
+    wsUrl = `${wsOrigin}/ws`;
+  } else {
+    const locOrigin = (typeof window !== 'undefined' && window.location?.origin ? window.location.origin : '').replace(/^http/, 'ws');
+    const wsOrigin = locOrigin ? `${locOrigin}${base.replace(/\/api$/, '')}` : '';
+    wsUrl = wsOrigin ? `${wsOrigin}/ws` : '';
+  }
+
+  if (!wsUrl || !wsUrl.startsWith('ws')) {
+    setWsPill('offline');
+    startPollingFallback();
+    return;
+  }
 
   let ws;
   try {
@@ -1196,7 +1208,10 @@ function renderIndexHero(detections, alerts, villages, sirens) {
 
   if (feedEl) {
     if (latestDetection) {
-      const backendOrigin = (window.WildShieldApi?.baseUrl || 'http://localhost:8000/api').replace(/\/api$/, '');
+      const base = window.WildShieldApi?.baseUrl || 'http://localhost:8000/api';
+      const backendOrigin = base.startsWith('http')
+        ? base.replace(/\/api$/, '')
+        : (typeof window !== 'undefined' && window.location?.origin ? `${window.location.origin}${base.replace(/\/api$/, '')}` : '');
       const snapshotUrl = latestDetection.snapshotUrl
         ? (latestDetection.snapshotUrl.startsWith('http') ? latestDetection.snapshotUrl : `${backendOrigin}${latestDetection.snapshotUrl}`)
         : null;
